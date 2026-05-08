@@ -1,0 +1,463 @@
+package com.numisproerp.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.People
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Store
+import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.LocalAtm
+import androidx.compose.material.icons.outlined.Receipt
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import com.numisproerp.NumisProERPApplication
+import com.numisproerp.data.repository.Repository
+import com.numisproerp.ui.navigation.Screen
+import com.numisproerp.ui.theme.AccentBlue
+import com.numisproerp.ui.theme.AccentGreen
+import com.numisproerp.ui.theme.AccentOrange
+import com.numisproerp.ui.theme.AccentRed
+import com.numisproerp.ui.viewmodel.DashboardViewModel
+import com.numisproerp.ui.viewmodel.DashboardViewModelFactory
+import com.numisproerp.ui.viewmodel.DashboardData
+import com.numisproerp.ui.viewmodel.RecentTransaction
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+
+@Composable
+fun DashboardScreen(
+    navController: NavHostController,
+    viewModel: DashboardViewModel = viewModel(
+        factory = DashboardViewModelFactory(
+            Repository(NumisProERPApplication.getInstance().database)
+        )
+    )
+) {
+    val dashboardData by viewModel.dashboardData.collectAsState()
+    val isLoading by viewModel.isLoading.collectAsState()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadDashboardData()
+    }
+
+    if (isLoading) {
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+            CircularProgressIndicator()
+        }
+    } else {
+        DashboardContent(
+            data = dashboardData,
+            onNavigateToStock = { navController.navigate(Screen.Stock.route) },
+            onNavigateToClients = { navController.navigate(Screen.Clients.route) },
+            onNavigateToReports = { navController.navigate(Screen.Reports.route) },
+            onNavigateToPurchase = { navController.navigate(Screen.Purchase.route) },
+            onNavigateToSale = { navController.navigate(Screen.Sale.route) },
+            onNavigateToExpenses = { navController.navigate(Screen.Expenses.route) },
+            onNavigateToDocuments = { navController.navigate(Screen.Documents.route) },
+            onNavigateToSuppliers = { navController.navigate(Screen.Suppliers.route) },
+            onNavigateToDetails = { type, title ->
+                navController.navigate("details/$type/$title")
+            }
+        )
+    }
+}
+
+@Composable
+fun DashboardContent(
+    data: DashboardData,
+    onNavigateToStock: () -> Unit,
+    onNavigateToClients: () -> Unit,
+    onNavigateToReports: () -> Unit,
+    onNavigateToPurchase: () -> Unit,
+    onNavigateToSale: () -> Unit,
+    onNavigateToExpenses: () -> Unit,
+    onNavigateToDocuments: () -> Unit,
+    onNavigateToSuppliers: () -> Unit,
+    onNavigateToDetails: (String, String) -> Unit
+) {
+    val currentDate = SimpleDateFormat("LLLL yyyy", Locale("uk")).format(Date())
+
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            Column {
+                Text(
+                    text = "NumisProERP",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Text(
+                    text = "Облік та каталогізація",
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+                Text(
+                    text = currentDate,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+        }
+
+        item {
+            StatsCardClickable(
+                title = "Загальний баланс",
+                value = String.format("%,.2f ₴", data.totalBalance),
+                valueColor = if (data.totalBalance >= 0) AccentGreen else AccentRed,
+                backgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                onClick = { onNavigateToDetails("balance", "Загальний баланс") }
+            )
+        }
+
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                MonthlyStatCardClickable(
+                    modifier = Modifier.weight(1f),
+                    title = "Закупівлі",
+                    value = String.format("%,.2f ₴", data.monthlyPurchases),
+                    icon = Icons.Outlined.LocalAtm,
+                    iconColor = AccentOrange,
+                    onClick = { onNavigateToDetails("purchases", "Закупівлі") }
+                )
+                MonthlyStatCardClickable(
+                    modifier = Modifier.weight(1f),
+                    title = "Прибуток",
+                    value = String.format("%,.2f ₴", data.monthlyProfit),
+                    icon = Icons.Outlined.BarChart,
+                    iconColor = AccentGreen,
+                    onClick = { onNavigateToDetails("profit", "Прибуток") }
+                )
+            }
+        }
+
+        item {
+            SectionHeader(title = "Швидкий доступ")
+        }
+
+        item {
+            QuickAccessRow(
+                onPurchaseClick = onNavigateToPurchase,
+                onSaleClick = onNavigateToSale,
+                onStockClick = onNavigateToStock,
+                onClientsClick = onNavigateToClients
+            )
+        }
+
+        item {
+            QuickAccessRow2(
+                onReportsClick = onNavigateToReports,
+                onSuppliersClick = onNavigateToSuppliers,
+                onExpensesClick = onNavigateToExpenses,
+                onDocumentsClick = onNavigateToDocuments
+            )
+        }
+
+        item {
+            SectionHeader(title = "Останні операції")
+        }
+
+        items(data.recentTransactions) { transaction ->
+            RecentTransactionItem(transaction = transaction)
+        }
+    }
+}
+
+@Composable
+fun StatsCardClickable(
+    title: String,
+    value: String,
+    valueColor: Color,
+    backgroundColor: Color,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() },
+        colors = CardDefaults.cardColors(containerColor = backgroundColor),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp)
+        ) {
+            Text(
+                text = title,
+                fontSize = 14.sp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = value,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Bold,
+                color = valueColor
+            )
+        }
+    }
+}
+
+@Composable
+fun MonthlyStatCardClickable(
+    modifier: Modifier = Modifier,
+    title: String,
+    value: String,
+    icon: ImageVector,
+    iconColor: Color,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier.clickable { onClick() },
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(iconColor.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconColor,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column {
+                Text(
+                    text = title,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+                Text(
+                    text = value,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun SectionHeader(title: String) {
+    Text(
+        text = title,
+        fontSize = 18.sp,
+        fontWeight = FontWeight.SemiBold,
+        color = MaterialTheme.colorScheme.onSurface
+    )
+}
+
+@Composable
+fun QuickAccessRow(
+    onPurchaseClick: () -> Unit,
+    onSaleClick: () -> Unit,
+    onStockClick: () -> Unit,
+    onClientsClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        QuickAccessButton(
+            icon = Icons.Outlined.LocalAtm,
+            label = "Закупівля",
+            onClick = onPurchaseClick
+        )
+        QuickAccessButton(
+            icon = Icons.Filled.ShoppingCart,
+            label = "Продаж",
+            onClick = onSaleClick
+        )
+        QuickAccessButton(
+            icon = Icons.Filled.Store,
+            label = "Склад",
+            onClick = onStockClick
+        )
+        QuickAccessButton(
+            icon = Icons.Filled.People,
+            label = "Клієнти",
+            onClick = onClientsClick
+        )
+    }
+}
+
+@Composable
+fun QuickAccessRow2(
+    onReportsClick: () -> Unit,
+    onSuppliersClick: () -> Unit,
+    onExpensesClick: () -> Unit,
+    onDocumentsClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceEvenly
+    ) {
+        QuickAccessButton(
+            icon = Icons.Outlined.BarChart,
+            label = "Звіти",
+            onClick = onReportsClick
+        )
+        QuickAccessButton(
+            icon = Icons.Filled.People,
+            label = "Постачальники",
+            onClick = onSuppliersClick
+        )
+        QuickAccessButton(
+            icon = Icons.Outlined.Receipt,
+            label = "Витрати",
+            onClick = onExpensesClick
+        )
+        QuickAccessButton(
+            icon = Icons.Outlined.BarChart,
+            label = "Документи",
+            onClick = onDocumentsClick
+        )
+    }
+}
+
+@Composable
+fun QuickAccessButton(
+    modifier: Modifier = Modifier,
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .clickable { onClick() }
+            .padding(8.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(56.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(28.dp)
+            )
+        }
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+        )
+    }
+}
+
+@Composable
+fun RecentTransactionItem(transaction: RecentTransaction) {
+    val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
+    val formattedDate = dateFormat.format(Date(transaction.date))
+    val isPurchase = transaction.type == "Покупка"
+
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(if (isPurchase) AccentOrange.copy(alpha = 0.15f) else AccentGreen.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = if (isPurchase) Icons.Outlined.LocalAtm else Icons.Filled.ShoppingCart,
+                    contentDescription = null,
+                    tint = if (isPurchase) AccentOrange else AccentGreen,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = transaction.productName,
+                    fontWeight = FontWeight.Medium,
+                    fontSize = 14.sp
+                )
+                Text(
+                    text = "${transaction.counterpartyName} • $formattedDate",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            }
+            Text(
+                text = if (isPurchase) "-${String.format("%,.2f", transaction.amount)} ₴" else "+${String.format("%,.2f", transaction.amount)} ₴",
+                fontWeight = FontWeight.Bold,
+                color = if (isPurchase) AccentOrange else AccentGreen
+            )
+        }
+    }
+}

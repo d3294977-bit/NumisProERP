@@ -1,0 +1,104 @@
+package com.numisproerp.ui.navigation
+
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import com.numisproerp.ui.screens.*
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+
+sealed class Screen(val route: String) {
+    object Dashboard : Screen("dashboard")
+    object Stock : Screen("stock")
+    object Clients : Screen("clients")
+    object Reports : Screen("reports")
+    object Suppliers : Screen("suppliers")
+    object Purchase : Screen("purchase")
+    object Sale : Screen("sale")
+    object Expenses : Screen("expenses")
+    object Documents : Screen("documents")
+    object Details : Screen("details/{type}/{title}") {
+        fun passArguments(type: String, title: String): String = "details/$type/$title"
+    }
+    // Заглушки
+    object ProductsPlaceholder : Screen("products")
+    object WriteoffPlaceholder : Screen("writeoff")
+    object HistoryPlaceholder : Screen("history")
+    object SettingsPlaceholder : Screen("settings")
+    object Catalog : Screen("catalog")  // ЗМІНЕНО: тепер не заглушка
+}
+
+@Composable
+fun NavGraph(
+    navController: NavHostController,
+    modifier: Modifier = Modifier,
+    onNavigate: (String) -> Unit = {}
+) {
+    NavHost(
+        navController = navController,
+        startDestination = Screen.Dashboard.route,
+        modifier = modifier
+    ) {
+        composable(Screen.Dashboard.route) {
+            DashboardScreen(navController = navController)
+        }
+        composable(Screen.Stock.route) {
+            StockScreen(navController = navController)
+        }
+        composable(Screen.Clients.route) {
+            ClientsScreen(navController = navController)
+        }
+        composable(Screen.Reports.route) {
+            ReportsScreen(navController = navController)
+        }
+        composable(Screen.Purchase.route) {
+            PurchaseScreen(navController = navController)
+        }
+        composable(Screen.Sale.route) {
+            SaleScreen(navController = navController)
+        }
+        composable(Screen.Suppliers.route) {
+            SuppliersScreen(navController = navController)
+        }
+        composable(Screen.Expenses.route) {
+            ExpensesScreen(navController = navController)
+        }
+        composable(Screen.Documents.route) {
+            DocumentsScreen(navController = navController)
+        }
+        // ДОДАНО: реальний екран каталогу
+        composable(Screen.Catalog.route) {
+            CatalogScreen(navController = navController)
+        }
+        composable(
+            route = Screen.Details.route,
+            arguments = listOf(
+                navArgument("type") { type = NavType.StringType },
+                navArgument("title") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val type = backStackEntry.arguments?.getString("type") ?: "balance"
+            val title = backStackEntry.arguments?.getString("title") ?: "Деталі"
+            DetailsScreen(
+                navController = navController,
+                type = type,
+                title = title
+            )
+        }
+        // Заглушки
+        composable(Screen.ProductsPlaceholder.route) {
+            PlaceholderScreen(title = "Товари (в розробці)", navController = navController)
+        }
+        composable(Screen.WriteoffPlaceholder.route) {
+            PlaceholderScreen(title = "Списання (в розробці)", navController = navController)
+        }
+        composable(Screen.HistoryPlaceholder.route) {
+            PlaceholderScreen(title = "Історія (в розробці)", navController = navController)
+        }
+        composable(Screen.SettingsPlaceholder.route) {
+            PlaceholderScreen(title = "Налаштування (в розробці)", navController = navController)
+        }
+    }
+}

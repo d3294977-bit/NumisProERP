@@ -1,0 +1,456 @@
+package com.numisproerp.ui.screens
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.Store
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavHostController
+import com.numisproerp.NumisProERPApplication
+import com.numisproerp.data.repository.Repository
+import com.numisproerp.ui.theme.AccentBlue
+import com.numisproerp.ui.theme.AccentGreen
+import com.numisproerp.ui.theme.AccentOrange
+import com.numisproerp.ui.theme.AccentRed
+import com.numisproerp.ui.viewmodel.ReportsViewModel
+import com.numisproerp.ui.viewmodel.ReportsViewModelFactory
+import com.numisproerp.ui.viewmodel.getStartOfMonthStatic
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ReportsScreen(navController: NavHostController) {
+    val viewModel: ReportsViewModel = viewModel(
+        factory = ReportsViewModelFactory(
+            Repository(NumisProERPApplication.getInstance().database)
+        )
+    )
+    val uiState by viewModel.uiState.collectAsState()
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        viewModel.loadReports()
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        IconButton(
+            onClick = { navController.popBackStack() },
+            modifier = Modifier
+                .padding(16.dp)
+                .align(Alignment.TopStart)
+        ) {
+            Icon(
+                Icons.Default.ArrowBack,
+                contentDescription = "Назад",
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        IconButton(
+            onClick = { showDatePicker = true },
+            modifier = Modifier
+                .padding(16.dp)
+                .align(Alignment.TopEnd)
+        ) {
+            Icon(
+                Icons.Default.CalendarToday,
+                contentDescription = "Вибрати період",
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = 72.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
+        ) {
+            if (uiState.isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    item {
+                        StatsGrid(uiState = uiState)
+                    }
+
+                    item {
+                        Text(
+                            text = "Динаміка за місяцями",
+                            fontSize = 18.sp,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                        )
+                    }
+
+                    items(uiState.monthlyData) { monthData ->
+                        MonthlyStatsCard(monthData = monthData)
+                    }
+
+                    item {
+                        Text(
+                            text = "Топ товарів",
+                            fontSize = 18.sp,
+                            fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold,
+                            modifier = Modifier.padding(top = 8.dp)
+                        )
+                    }
+
+                    if (uiState.topProducts.isEmpty()) {
+                        item {
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = AccentOrange.copy(alpha = 0.1f)
+                                ),
+                                shape = RoundedCornerShape(12.dp)
+                            ) {
+                                Text(
+                                    text = "Немає даних про продажі",
+                                    modifier = Modifier.padding(16.dp),
+                                    color = AccentOrange
+                                )
+                            }
+                        }
+                    } else {
+                        items(uiState.topProducts) { product ->
+                            TopProductCard(product = product)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    if (showDatePicker) {
+        DateRangePickerDialog(
+            onDismiss = { showDatePicker = false },
+            onConfirm = { start, end ->
+                viewModel.updateDateRange(start, end)
+                showDatePicker = false
+            }
+        )
+    }
+}
+
+@Composable
+fun StatsGrid(uiState: com.numisproerp.ui.viewmodel.ReportsUiState) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        StatCard(
+            modifier = Modifier.weight(1f),
+            title = "Дохід",
+            value = String.format("%,.2f", uiState.totalRevenue),
+            icon = Icons.Filled.ShoppingCart,
+            iconColor = AccentGreen,
+            valueColor = AccentGreen
+        )
+        StatCard(
+            modifier = Modifier.weight(1f),
+            title = "Витрати",
+            value = String.format("%,.2f", uiState.totalExpenses),
+            icon = Icons.Filled.Warning,
+            iconColor = AccentRed,
+            valueColor = AccentRed
+        )
+    }
+
+    Spacer(modifier = Modifier.height(12.dp))
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        StatCard(
+            modifier = Modifier.weight(1f),
+            title = "Чистий прибуток",
+            value = String.format("%,.2f", uiState.netProfit),
+            icon = Icons.Filled.TrendingUp,
+            iconColor = if (uiState.netProfit >= 0) AccentGreen else AccentRed,
+            valueColor = if (uiState.netProfit >= 0) AccentGreen else AccentRed
+        )
+        StatCard(
+            modifier = Modifier.weight(1f),
+            title = "Залишки на складі",
+            value = String.format("%,.2f", uiState.stockValue),
+            icon = Icons.Filled.Store,
+            iconColor = AccentBlue,
+            valueColor = AccentBlue
+        )
+    }
+}
+
+@Composable
+fun StatCard(
+    modifier: Modifier = Modifier,
+    title: String,
+    value: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    iconColor: Color,
+    valueColor: Color
+) {
+    Card(
+        modifier = modifier,
+        shape = RoundedCornerShape(12.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(iconColor.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = icon,
+                        contentDescription = null,
+                        tint = iconColor,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = title,
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+            }
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text = "$value ₴",
+                fontSize = 18.sp,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                color = valueColor
+            )
+        }
+    }
+}
+
+@Composable
+fun MonthlyStatsCard(monthData: com.numisproerp.ui.viewmodel.MonthlyStats) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp)
+        ) {
+            Text(
+                text = monthData.month,
+                fontSize = 14.sp,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text(
+                        text = "Дохід",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                    Text(
+                        text = "${String.format("%,.2f", monthData.revenue)} ₴",
+                        fontSize = 13.sp,
+                        color = AccentGreen
+                    )
+                }
+                Column {
+                    Text(
+                        text = "Витрати",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                    Text(
+                        text = "${String.format("%,.2f", monthData.expenses)} ₴",
+                        fontSize = 13.sp,
+                        color = AccentRed
+                    )
+                }
+                Column {
+                    Text(
+                        text = "Прибуток",
+                        fontSize = 11.sp,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                    Text(
+                        text = "${String.format("%,.2f", monthData.profit)} ₴",
+                        fontSize = 13.sp,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                        color = if (monthData.profit >= 0) AccentGreen else AccentRed
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun TopProductCard(product: com.numisproerp.ui.viewmodel.TopProduct) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(10.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(AccentOrange.copy(alpha = 0.1f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(Icons.Filled.Category, contentDescription = null, tint = AccentOrange)
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                Text(
+                    text = product.name,
+                    fontSize = 14.sp,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Medium
+                )
+                Text(
+                    text = "Продано: ${product.quantitySold} шт.",
+                    fontSize = 11.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                )
+            }
+            Text(
+                text = "${String.format("%,.2f", product.totalRevenue)} ₴",
+                fontSize = 14.sp,
+                fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                color = AccentGreen
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DateRangePickerDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (startDate: Long, endDate: Long) -> Unit
+) {
+    val startDatePickerState = rememberDatePickerState()
+    val endDatePickerState = rememberDatePickerState()
+    var showStartPicker by remember { mutableStateOf(true) }
+
+    if (showStartPicker) {
+        DatePickerDialog(
+            onDismissRequest = { onDismiss() },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        startDatePickerState.selectedDateMillis?.let {
+                            showStartPicker = false
+                        }
+                    }
+                ) {
+                    Text("Далі")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { onDismiss() }) {
+                    Text("Скасувати")
+                }
+            }
+        ) {
+            DatePicker(state = startDatePickerState)
+        }
+    } else {
+        DatePickerDialog(
+            onDismissRequest = { onDismiss() },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val start = startDatePickerState.selectedDateMillis ?: getStartOfMonthStatic()
+                        val end = endDatePickerState.selectedDateMillis ?: System.currentTimeMillis()
+                        onConfirm(start, end)
+                    }
+                ) {
+                    Text("Підтвердити")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { onDismiss() }) {
+                    Text("Скасувати")
+                }
+            }
+        ) {
+            DatePicker(state = endDatePickerState)
+        }
+    }
+}
