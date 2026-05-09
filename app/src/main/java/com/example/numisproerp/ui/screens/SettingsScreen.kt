@@ -130,6 +130,8 @@ fun SettingsScreen(
     val purchasesLbl = tr("Закупівель", "Purchases")
     val salesLbl = tr("Продажів", "Sales")
     val expensesLbl = tr("Витрат", "Expenses")
+    val writeoffsLbl = tr("Списань", "Writeoffs")
+    val collectionLbl = tr("Колекція", "Collection")
     val importedTitle = tr(importedTitleUa, importedTitleEn)
     val exportDoneTitle = tr("Експорт завершено", "Export complete")
 
@@ -143,7 +145,8 @@ fun SettingsScreen(
                 val message = if (result.success) {
                     "$importedTitle: $productsLbl:${result.productsCount}, $clientsLbl:${result.clientsCount}, " +
                         "$suppliersLbl:${result.suppliersCount}, $purchasesLbl:${result.purchasesCount}, " +
-                        "$salesLbl:${result.salesCount}, $expensesLbl:${result.expensesCount}"
+                        "$salesLbl:${result.salesCount}, $expensesLbl:${result.expensesCount}, " +
+                        "$writeoffsLbl:${result.writeoffsCount}, $collectionLbl:${result.collectionCount}"
                 } else {
                     result.message
                 }

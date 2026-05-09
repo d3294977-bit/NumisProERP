@@ -4,11 +4,13 @@ import android.content.Context
 import android.net.Uri
 import com.numisproerp.data.database.AppDatabase
 import com.numisproerp.data.entities.Client
+import com.numisproerp.data.entities.CollectionItem
 import com.numisproerp.data.entities.OtherExpense
 import com.numisproerp.data.entities.Product
 import com.numisproerp.data.entities.Purchase
 import com.numisproerp.data.entities.Sale
 import com.numisproerp.data.entities.Supplier
+import com.numisproerp.data.entities.Writeoff
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.apache.poi.ss.usermodel.WorkbookFactory
@@ -28,7 +30,9 @@ class ExcelImporter(
         val suppliersCount: Int = 0,
         val purchasesCount: Int = 0,
         val salesCount: Int = 0,
-        val expensesCount: Int = 0
+        val expensesCount: Int = 0,
+        val writeoffsCount: Int = 0,
+        val collectionCount: Int = 0
     )
 
     suspend fun importFromUri(context: Context, uri: Uri): ImportResult {
@@ -51,6 +55,8 @@ class ExcelImporter(
         var purchasesCount = 0
         var salesCount = 0
         var expensesCount = 0
+        var writeoffsCount = 0
+        var collectionCount = 0
 
         try {
             val workbook = WorkbookFactory.create(inputStream)
@@ -265,6 +271,80 @@ class ExcelImporter(
                 }
             }
 
+            // 7. Імпорт списань (аркуш "Списання")
+            val writeoffsSheet = workbook.getSheet("Списання")
+            if (writeoffsSheet != null) {
+                val writeoffs = mutableListOf<Writeoff>()
+                for (rowIndex in 1 until writeoffsSheet.physicalNumberOfRows) {
+                    val row = writeoffsSheet.getRow(rowIndex) ?: continue
+                    val writeoffId = row.getCell(0)?.toString() ?: continue
+                    if (writeoffId.isBlank()) continue
+
+                    val dateStr = row.getCell(1)?.toString() ?: ""
+                    val date = try {
+                        dateFormat.parse(dateStr)?.time ?: System.currentTimeMillis()
+                    } catch (e: Exception) {
+                        System.currentTimeMillis()
+                    }
+
+                    val writeoff = Writeoff(
+                        writeoffId = writeoffId,
+                        date = date,
+                        catalogId = row.getCell(2)?.toString() ?: "",
+                        quantity = row.getCell(3)?.toString()?.toDoubleOrNull()?.toInt() ?: 0,
+                        pricePerUnit = row.getCell(4)?.toString()?.toDoubleOrNull() ?: 0.0,
+                        totalAmount = row.getCell(5)?.toString()?.toDoubleOrNull() ?: 0.0,
+                        reason = row.getCell(6)?.toString() ?: "",
+                        comment = row.getCell(7)?.toString() ?: ""
+                    )
+                    writeoffs.add(writeoff)
+                }
+                if (writeoffs.isNotEmpty()) {
+                    database.writeoffDao().deleteAll()
+                    writeoffs.forEach { database.writeoffDao().insert(it) }
+                    writeoffsCount = writeoffs.size
+                }
+            }
+
+            // 8. Імпорт колекції (аркуш "Моя колекція")
+            val collectionSheet = workbook.getSheet("Моя колекція")
+            if (collectionSheet != null) {
+                val items = mutableListOf<CollectionItem>()
+                for (rowIndex in 1 until collectionSheet.physicalNumberOfRows) {
+                    val row = collectionSheet.getRow(rowIndex) ?: continue
+                    val collectionId = row.getCell(0)?.toString() ?: continue
+                    if (collectionId.isBlank()) continue
+
+                    val dateStr = row.getCell(9)?.toString() ?: ""
+                    val dateAdded = try {
+                        dateFormat.parse(dateStr)?.time ?: System.currentTimeMillis()
+                    } catch (e: Exception) {
+                        System.currentTimeMillis()
+                    }
+
+                    val item = CollectionItem(
+                        collectionId = collectionId,
+                        name = row.getCell(1)?.toString() ?: "",
+                        series = row.getCell(2)?.toString() ?: "",
+                        category = row.getCell(3)?.toString() ?: "",
+                        material = row.getCell(4)?.toString() ?: "",
+                        nominal = row.getCell(5)?.toString() ?: "",
+                        quality = row.getCell(6)?.toString() ?: "",
+                        quantity = row.getCell(7)?.toString()?.toDoubleOrNull()?.toInt() ?: 1,
+                        estimatedValue = row.getCell(8)?.toString()?.toDoubleOrNull() ?: 0.0,
+                        dateAdded = dateAdded,
+                        description = row.getCell(10)?.toString() ?: "",
+                        photoPath = row.getCell(11)?.toString() ?: ""
+                    )
+                    items.add(item)
+                }
+                if (items.isNotEmpty()) {
+                    database.collectionItemDao().deleteAll()
+                    items.forEach { database.collectionItemDao().insert(it) }
+                    collectionCount = items.size
+                }
+            }
+
             workbook.close()
 
             // Після імпорту products повторно синхронізуємо «дзеркальні» Product-и
@@ -300,7 +380,9 @@ class ExcelImporter(
                 suppliersCount = suppliersCount,
                 purchasesCount = purchasesCount,
                 salesCount = salesCount,
-                expensesCount = expensesCount
+                expensesCount = expensesCount,
+                writeoffsCount = writeoffsCount,
+                collectionCount = collectionCount
             )
 
         } catch (e: Exception) {

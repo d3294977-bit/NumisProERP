@@ -159,10 +159,11 @@ class ExcelExporter(
         header.createCell(0).setCellValue("PurchaseID")
         header.createCell(1).setCellValue("Дата")
         header.createCell(2).setCellValue("CatalogID")
-        header.createCell(3).setCellValue("Кількість")
-        header.createCell(4).setCellValue("Ціна")
-        header.createCell(5).setCellValue("Дод.витрати")
-        header.createCell(6).setCellValue("Сума")
+        header.createCell(3).setCellValue("SupplierID")
+        header.createCell(4).setCellValue("Кількість")
+        header.createCell(5).setCellValue("Ціна")
+        header.createCell(6).setCellValue("Дод.витрати")
+        header.createCell(7).setCellValue("Сума")
 
         val purchases = database.purchaseDao().getAllPurchases()
         var rowNum = 1
@@ -171,10 +172,11 @@ class ExcelExporter(
             row.createCell(0).setCellValue(purchase.purchaseId)
             row.createCell(1).setCellValue(dateFormat.format(Date(purchase.date)))
             row.createCell(2).setCellValue(purchase.catalogId)
-            row.createCell(3).setCellValue(purchase.quantity.toDouble())
-            row.createCell(4).setCellValue(purchase.pricePerUnit)
-            row.createCell(5).setCellValue(purchase.additionalCosts)
-            row.createCell(6).setCellValue(purchase.totalAmount)
+            row.createCell(3).setCellValue(purchase.supplierId)
+            row.createCell(4).setCellValue(purchase.quantity.toDouble())
+            row.createCell(5).setCellValue(purchase.pricePerUnit)
+            row.createCell(6).setCellValue(purchase.additionalCosts)
+            row.createCell(7).setCellValue(purchase.totalAmount)
             rowNum++
         }
     }
@@ -188,7 +190,9 @@ class ExcelExporter(
         header.createCell(3).setCellValue("ClientID")
         header.createCell(4).setCellValue("Кількість")
         header.createCell(5).setCellValue("Ціна")
-        header.createCell(6).setCellValue("Сума")
+        header.createCell(6).setCellValue("Дод.витрати")
+        header.createCell(7).setCellValue("Чистий прибуток")
+        header.createCell(8).setCellValue("Сума")
 
         val sales = database.saleDao().getAllSales()
         var rowNum = 1
@@ -200,7 +204,9 @@ class ExcelExporter(
             row.createCell(3).setCellValue(sale.clientId)
             row.createCell(4).setCellValue(sale.quantity.toDouble())
             row.createCell(5).setCellValue(sale.pricePerUnit)
-            row.createCell(6).setCellValue(sale.totalAmount)
+            row.createCell(6).setCellValue(sale.additionalCosts)
+            row.createCell(7).setCellValue(sale.netProfit)
+            row.createCell(8).setCellValue(sale.totalAmount)
             rowNum++
         }
     }

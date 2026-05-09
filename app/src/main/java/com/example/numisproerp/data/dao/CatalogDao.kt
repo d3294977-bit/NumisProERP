@@ -29,4 +29,10 @@ interface CatalogDao {
 
     @Query("SELECT COUNT(*) FROM catalog_items")
     suspend fun getCount(): Int
+
+    @Query("SELECT * FROM catalog_items WHERE name = :name LIMIT 1")
+    suspend fun getItemByName(name: String): CatalogItem?
+
+    @Query("SELECT * FROM catalog_items")
+    suspend fun getAllItemsSync(): List<CatalogItem>
 }

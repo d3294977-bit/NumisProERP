@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 
 data class ProductsUiState(
     val products: List<Product> = emptyList(),
+    val catalogImageMap: Map<String, String> = emptyMap(),
     val isLoading: Boolean = false,
     val searchQuery: String = "",
     val selectedCategory: String = "",
@@ -31,6 +32,7 @@ class ProductsViewModel @Inject constructor(
     init {
         loadProducts()
         loadCategories()
+        loadCatalogImages()
     }
 
     fun updateSearchQuery(query: String) {
@@ -57,6 +59,18 @@ class ProductsViewModel @Inject constructor(
             val categories = repository.getDistinctCategories()
             _uiState.value = _uiState.value.copy(categories = categories)
         }
+    }
+
+    private fun loadCatalogImages() {
+        viewModelScope.launch {
+            val imageMap = repository.getCatalogImageMap()
+            _uiState.value = _uiState.value.copy(catalogImageMap = imageMap)
+        }
+    }
+
+    fun getProductImageUrl(product: Product): String {
+        if (product.photoPath.isNotBlank()) return product.photoPath
+        return _uiState.value.catalogImageMap[product.name] ?: ""
     }
 
     fun filteredProducts(): List<Product> {

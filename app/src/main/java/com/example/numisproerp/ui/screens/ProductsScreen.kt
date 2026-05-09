@@ -172,6 +172,7 @@ fun ProductsScreen(
                         items(visibleProducts) { product ->
                             ProductRowCard(
                                 product = product,
+                                imageUrl = viewModel.getProductImageUrl(product),
                                 onClick = { selectedProduct = product }
                             )
                         }
@@ -184,6 +185,7 @@ fun ProductsScreen(
     selectedProduct?.let { product ->
         ProductDetailDialog(
             product = product,
+            imageUrl = viewModel.getProductImageUrl(product),
             onDismiss = { selectedProduct = null }
         )
     }
@@ -192,6 +194,7 @@ fun ProductsScreen(
 @Composable
 private fun ProductRowCard(
     product: Product,
+    imageUrl: String,
     onClick: () -> Unit
 ) {
     Card(
@@ -208,7 +211,7 @@ private fun ProductRowCard(
                 .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            ProductThumbnail(photoPath = product.photoPath)
+            ProductThumbnail(photoPath = imageUrl)
             Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
@@ -283,6 +286,7 @@ private fun ProductThumbnail(photoPath: String) {
 @Composable
 fun ProductDetailDialog(
     product: Product,
+    imageUrl: String = product.photoPath,
     onDismiss: () -> Unit
 ) {
     AlertDialog(
@@ -302,8 +306,8 @@ fun ProductDetailDialog(
                 modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
-                ProductDetailPhoto(photoPath = product.photoPath)
-                if (product.photoPath.isNotBlank()) {
+                ProductDetailPhoto(photoPath = imageUrl)
+                if (imageUrl.isNotBlank()) {
                     Spacer(modifier = Modifier.height(8.dp))
                 }
                 DetailRow("ID каталогу", product.catalogId)
