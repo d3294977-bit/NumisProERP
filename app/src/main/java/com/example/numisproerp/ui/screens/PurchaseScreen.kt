@@ -573,13 +573,12 @@ fun SupplierDropdown(
     onSupplierSelected: (String) -> Unit
 ) {
     val selectedSupplier = suppliers.find { it.supplierId == selectedSupplierId }
-    var query by remember(selectedSupplierId) { mutableStateOf(selectedSupplier?.name ?: "") }
+    var query by remember { mutableStateOf(selectedSupplier?.name ?: "") }
     var expanded by remember { mutableStateOf(false) }
 
-    // Якщо обраного постачальника видалили зі списку — очищаємо поле.
-    LaunchedEffect(selectedSupplier) {
-        if (selectedSupplier != null && query != selectedSupplier.name) {
-            query = selectedSupplier.name
+    LaunchedEffect(selectedSupplierId) {
+        if (selectedSupplierId.isNotEmpty()) {
+            query = selectedSupplier?.name ?: ""
         }
     }
 
@@ -597,7 +596,7 @@ fun SupplierDropdown(
             onValueChange = { newValue ->
                 query = newValue
                 expanded = true
-                if (newValue.isBlank() && selectedSupplierId.isNotEmpty()) {
+                if (selectedSupplierId.isNotEmpty() && newValue != selectedSupplier?.name) {
                     onSupplierSelected("")
                 }
             },
