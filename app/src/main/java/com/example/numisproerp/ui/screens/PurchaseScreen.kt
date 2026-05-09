@@ -575,9 +575,12 @@ fun SupplierDropdown(
     val selectedSupplier = suppliers.find { it.supplierId == selectedSupplierId }
     var query by remember { mutableStateOf(selectedSupplier?.name ?: "") }
     var expanded by remember { mutableStateOf(false) }
+    var suppressSync by remember { mutableStateOf(false) }
 
     LaunchedEffect(selectedSupplierId) {
-        if (selectedSupplierId.isNotEmpty()) {
+        if (suppressSync) {
+            suppressSync = false
+        } else {
             query = selectedSupplier?.name ?: ""
         }
     }
@@ -597,6 +600,7 @@ fun SupplierDropdown(
                 query = newValue
                 expanded = true
                 if (selectedSupplierId.isNotEmpty() && newValue != selectedSupplier?.name) {
+                    suppressSync = true
                     onSupplierSelected("")
                 }
             },
