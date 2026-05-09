@@ -51,6 +51,7 @@ class CatalogRepository @Inject constructor(
             try {
                 context.contentResolver.openInputStream(uri)?.use { inputStream ->
                     val items = parseExcel(inputStream)
+                    catalogDao.deleteAll()
                     if (items.isNotEmpty()) {
                         catalogDao.insertAll(items)
                     }
