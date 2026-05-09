@@ -78,6 +78,18 @@ class Repository @Inject constructor(
         return database.productDao().getAllProducts()
     }
 
+    suspend fun getCatalogImageMap(): Map<String, String> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val catalogItems = database.catalogDao().getAllItemsSync()
+                catalogItems.filter { it.imageUrlFront.isNotEmpty() }
+                    .associate { it.name to it.imageUrlFront }
+            } catch (e: Exception) {
+                emptyMap()
+            }
+        }
+    }
+
     suspend fun getProductById(catalogId: String): Product? {
         return withContext(Dispatchers.IO) {
             database.productDao().getProductById(catalogId)
