@@ -29,10 +29,15 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.PhotoCamera
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Clear
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -112,16 +117,95 @@ fun MyCollectionScreen(
                 .fillMaxSize()
                 .padding(top = 16.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
         ) {
-            Text(
-                text = tr("Моя колекція", "My collection"),
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 8.dp, bottom = 12.dp),
-                textAlign = TextAlign.Center
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Spacer(modifier = Modifier.width(80.dp))
+                Text(
+                    text = tr("Моя колекція", "My collection"),
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center
+                )
+                IconButton(onClick = { viewModel.toggleSortDialog(true) }) {
+                    Icon(
+                        Icons.AutoMirrored.Filled.Sort,
+                        contentDescription = tr("Сортувати", "Sort"),
+                        tint = AccentBlue
+                    )
+                }
+                IconButton(onClick = { viewModel.toggleFilterDialog(true) }) {
+                    Icon(
+                        Icons.Default.FilterList,
+                        contentDescription = tr("Фільтр", "Filter"),
+                        tint = AccentBlue
+                    )
+                }
+            }
+
+            OutlinedTextField(
+                value = uiState.searchQuery,
+                onValueChange = { viewModel.updateSearchQuery(it) },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = {
+                    Text(tr("Пошук за назвою, серією, категорією...", "Search by name, series, category..."))
+                },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                trailingIcon = {
+                    if (uiState.searchQuery.isNotEmpty()) {
+                        IconButton(onClick = { viewModel.updateSearchQuery("") }) {
+                            Icon(Icons.Outlined.Clear, contentDescription = tr("Очистити", "Clear"))
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = RoundedCornerShape(IOSDesign.ButtonCornerRadius)
             )
+
+            val activeFilters = listOfNotNull(
+                if (uiState.filterCategory.isNotEmpty()) tr("Категорія", "Category") + ": " + uiState.filterCategory to { viewModel.setFilterCategory("") }
+                else null,
+                if (uiState.filterMaterial.isNotEmpty()) tr("Матеріал", "Material") + ": " + uiState.filterMaterial to { viewModel.setFilterMaterial("") }
+                else null,
+                if (uiState.filterQuality.isNotEmpty()) tr("Якість", "Quality") + ": " + uiState.filterQuality to { viewModel.setFilterQuality("") }
+                else null,
+                if (uiState.filterSeries.isNotEmpty()) tr("Серія", "Series") + ": " + uiState.filterSeries to { viewModel.setFilterSeries("") }
+                else null,
+                if (uiState.filterNominal.isNotEmpty()) tr("Номінал", "Nominal") + ": " + uiState.filterNominal to { viewModel.setFilterNominal("") }
+                else null
+            )
+            if (activeFilters.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                androidx.compose.foundation.lazy.LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    items(activeFilters) { (label, onRemove) ->
+                        androidx.compose.material3.AssistChip(
+                            onClick = { onRemove() },
+                            label = { Text(label, fontSize = 12.sp) },
+                            trailingIcon = {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = tr("Прибрати", "Remove"),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        )
+                    }
+                    item {
+                        TextButton(onClick = { viewModel.clearAllFilters() }) {
+                            Text(tr("Очистити все", "Clear all"), fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             Card(
                 modifier = Modifier.fillMaxWidth(),
@@ -272,6 +356,60 @@ fun MyCollectionScreen(
             confirmButton = {
                 TextButton(onClick = { detailItem = null }) { Text(tr("Закрити", "Close")) }
             }
+        )
+    }
+
+    // Sort dialog
+    if (uiState.showSortDialog) {
+        AlertDialog(
+            onDismissRequest = { viewModel.toggleSortDialog(false) },
+            title = { Text(tr("Сортувати", "Sort")) },
+            text = {
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                    listOf(
+                        "date_desc" to tr("За датою (новіші)", "By date (newest)"),
+                        "date_asc" to tr("За датою (старіші)", "By date (oldest)"),
+                        "name_asc" to tr("За назвою (А-Я)", "By name (A-Z)"),
+                        "name_desc" to tr("За назвою (Я-А)", "By name (Z-A)"),
+                        "value_desc" to tr("За вартістю (спадання)", "By value (desc)"),
+                        "value_asc" to tr("За вартістю (зростання)", "By value (asc)"),
+                        "qty_desc" to tr("За кількістю (спадання)", "By quantity (desc)"),
+                        "qty_asc" to tr("За кількістю (зростання)", "By quantity (asc)"),
+                        "category" to tr("За категорією", "By category"),
+                        "material" to tr("За матеріалом", "By material")
+                    ).forEach { (value, label) ->
+                        TextButton(
+                            onClick = { viewModel.setSortBy(value) },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = if (uiState.sortBy == value) "• $label" else label,
+                                fontWeight = if (uiState.sortBy == value) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { viewModel.toggleSortDialog(false) }) {
+                    Text(tr("Закрити", "Close"))
+                }
+            }
+        )
+    }
+
+    // Filter dialog
+    if (uiState.showFilterDialog) {
+        CollectionFilterDialog(
+            uiState = uiState,
+            onDismiss = { viewModel.toggleFilterDialog(false) },
+            onCategorySelected = { viewModel.setFilterCategory(it) },
+            onMaterialSelected = { viewModel.setFilterMaterial(it) },
+            onQualitySelected = { viewModel.setFilterQuality(it) },
+            onSeriesSelected = { viewModel.setFilterSeries(it) },
+            onNominalSelected = { viewModel.setFilterNominal(it) },
+            onClearAll = { viewModel.clearAllFilters() }
         )
     }
 
@@ -577,3 +715,161 @@ private fun AddOrEditCollectionDialog(
         }
     )
 }
+
+@Composable
+private fun CollectionFilterDialog(
+    uiState: com.numisproerp.ui.viewmodel.MyCollectionUiState,
+    onDismiss: () -> Unit,
+    onCategorySelected: (String) -> Unit,
+    onMaterialSelected: (String) -> Unit,
+    onQualitySelected: (String) -> Unit,
+    onSeriesSelected: (String) -> Unit,
+    onNominalSelected: (String) -> Unit,
+    onClearAll: () -> Unit
+) {
+    var activeDimension by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                if (activeDimension == null) tr("Фільтр", "Filter")
+                else tr("Оберіть значення", "Select value")
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 420.dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                if (activeDimension == null) {
+                    // Tree root: choose filter dimension
+                    FilterDimensionRow(
+                        label = tr("Категорія", "Category"),
+                        selected = uiState.filterCategory,
+                        empty = uiState.categories.isEmpty(),
+                        onClick = { activeDimension = "category" }
+                    )
+                    FilterDimensionRow(
+                        label = tr("Матеріал", "Material"),
+                        selected = uiState.filterMaterial,
+                        empty = uiState.materials.isEmpty(),
+                        onClick = { activeDimension = "material" }
+                    )
+                    FilterDimensionRow(
+                        label = tr("Якість", "Quality"),
+                        selected = uiState.filterQuality,
+                        empty = uiState.qualities.isEmpty(),
+                        onClick = { activeDimension = "quality" }
+                    )
+                    FilterDimensionRow(
+                        label = tr("Серія", "Series"),
+                        selected = uiState.filterSeries,
+                        empty = uiState.seriesList.isEmpty(),
+                        onClick = { activeDimension = "series" }
+                    )
+                    FilterDimensionRow(
+                        label = tr("Номінал", "Nominal"),
+                        selected = uiState.filterNominal,
+                        empty = uiState.nominals.isEmpty(),
+                        onClick = { activeDimension = "nominal" }
+                    )
+                } else {
+                    val (options, currentValue, apply) = when (activeDimension) {
+                        "category" -> Triple(uiState.categories, uiState.filterCategory, onCategorySelected)
+                        "material" -> Triple(uiState.materials, uiState.filterMaterial, onMaterialSelected)
+                        "quality" -> Triple(uiState.qualities, uiState.filterQuality, onQualitySelected)
+                        "series" -> Triple(uiState.seriesList, uiState.filterSeries, onSeriesSelected)
+                        "nominal" -> Triple(uiState.nominals, uiState.filterNominal, onNominalSelected)
+                        else -> Triple(emptyList(), "", {} as (String) -> Unit)
+                    }
+
+                    TextButton(
+                        onClick = {
+                            apply("")
+                            activeDimension = null
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            tr("Усі", "All"),
+                            fontWeight = if (currentValue.isEmpty()) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                    options.forEach { value ->
+                        TextButton(
+                            onClick = {
+                                apply(value)
+                                activeDimension = null
+                            },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = if (currentValue == value) "• $value" else value,
+                                fontWeight = if (currentValue == value) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    }
+                    if (options.isEmpty()) {
+                        Text(
+                            tr("Немає значень для цього критерію", "No values for this criterion"),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (activeDimension == null) {
+                TextButton(onClick = { onClearAll() }) {
+                    Text(tr("Очистити", "Clear all"))
+                }
+            } else {
+                TextButton(onClick = { activeDimension = null }) {
+                    Text(tr("Назад", "Back"))
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(tr("Закрити", "Close"))
+            }
+        }
+    )
+}
+
+@Composable
+private fun FilterDimensionRow(
+    label: String,
+    selected: String,
+    empty: Boolean,
+    onClick: () -> Unit
+) {
+    TextButton(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        enabled = !empty
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                fontWeight = if (selected.isNotEmpty()) FontWeight.Bold else FontWeight.Normal
+            )
+            Text(
+                text = if (selected.isNotEmpty()) selected else if (empty) tr("немає", "none") else tr("›", "›"),
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        }
+    }
+}
+

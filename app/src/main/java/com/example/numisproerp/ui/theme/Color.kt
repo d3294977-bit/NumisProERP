@@ -56,11 +56,14 @@ val Pink80 = IOSPink
 // =============================================================================
 // OlegSmile theme palette — чорно-золота фірмова тема із емблемою лева.
 // Використовується, якщо в Налаштуваннях обрано AppTheme.OLEG_SMILE.
+// background робимо прозорим, щоб у NumisProERPTheme можна було показати
+// фірмове зображення лева як загальний фон екрану.
 // =============================================================================
-val OlegBackground = Color(0xFF0B0B0D)
-val OlegSurface = Color(0xFF15141A)
-val OlegSurfaceVariant = Color(0xFF1F1D26)
-val OlegPrimaryContainer = Color(0xFF2A2316)
+val OlegBackground = Color(0x00000000)
+val OlegBackgroundSolid = Color(0xFF0B0B0D)
+val OlegSurface = Color(0xCC15141A)
+val OlegSurfaceVariant = Color(0xCC1F1D26)
+val OlegPrimaryContainer = Color(0xCC2A2316)
 val OlegOnSurface = Color(0xFFEDE3C8)
 val OlegOnSurfaceVariant = Color(0xFFC4B68A)
 

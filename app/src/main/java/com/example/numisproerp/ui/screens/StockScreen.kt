@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -126,8 +128,8 @@ fun StockScreen(
                 IconButton(onClick = { viewModel.toggleSortDialog(true) }) {
                     Icon(Icons.AutoMirrored.Filled.Sort, contentDescription = tr("Сортувати", "Sort"), tint = AccentBlue)
                 }
-                IconButton(onClick = { /* show material filter via dialog */ viewModel.toggleMaterialFilter() }) {
-                    Icon(Icons.Default.FilterList, contentDescription = tr("Фільтр матеріал", "Filter material"), tint = AccentBlue)
+                IconButton(onClick = { viewModel.toggleFilterDialog(true) }) {
+                    Icon(Icons.Default.FilterList, contentDescription = tr("Фільтр", "Filter"), tint = AccentBlue)
                 }
             }
 
@@ -146,6 +148,47 @@ fun StockScreen(
                 },
                 shape = RoundedCornerShape(IOSDesign.ButtonCornerRadius)
             )
+
+            val activeStockFilters = listOfNotNull(
+                if (uiState.filterMaterial.isNotEmpty())
+                    tr("Матеріал", "Material") + ": " + uiState.filterMaterial to { viewModel.updateFilterMaterial("") }
+                else null,
+                if (uiState.filterCategory.isNotEmpty())
+                    tr("Категорія", "Category") + ": " + uiState.filterCategory to { viewModel.updateFilterCategory("") }
+                else null,
+                if (uiState.filterQuality.isNotEmpty())
+                    tr("Якість", "Quality") + ": " + uiState.filterQuality to { viewModel.updateFilterQuality("") }
+                else null,
+                if (uiState.filterSeries.isNotEmpty())
+                    tr("Серія", "Series") + ": " + uiState.filterSeries to { viewModel.updateFilterSeries("") }
+                else null,
+                if (uiState.filterNominal.isNotEmpty())
+                    tr("Номінал", "Nominal") + ": " + uiState.filterNominal to { viewModel.updateFilterNominal("") }
+                else null
+            )
+            if (activeStockFilters.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(8.dp))
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    items(activeStockFilters) { (label, onRemove) ->
+                        androidx.compose.material3.AssistChip(
+                            onClick = { onRemove() },
+                            label = { Text(label, fontSize = 12.sp) },
+                            trailingIcon = {
+                                Icon(
+                                    Icons.Outlined.Clear,
+                                    contentDescription = tr("Прибрати", "Remove"),
+                                    modifier = Modifier.size(14.dp)
+                                )
+                            }
+                        )
+                    }
+                    item {
+                        TextButton(onClick = { viewModel.clearAllFilters() }) {
+                            Text(tr("Очистити все", "Clear all"), fontSize = 12.sp)
+                        }
+                    }
+                }
+            }
 
             if (uiState.categories.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(12.dp))
@@ -311,38 +354,17 @@ fun StockScreen(
         )
     }
 
-    // Material filter dialog
-    if (uiState.showMaterialDialog) {
-        AlertDialog(
-            onDismissRequest = { viewModel.toggleMaterialFilter() },
-            title = { Text(tr("Фільтр за матеріалом", "Filter by material")) },
-            text = {
-                Column {
-                    TextButton(
-                        onClick = { viewModel.updateFilterMaterial("") },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(tr("Усі матеріали", "All materials"), fontWeight = FontWeight.Bold)
-                    }
-                    uiState.materials.forEach { material ->
-                        TextButton(
-                            onClick = { viewModel.updateFilterMaterial(material) },
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = if (uiState.filterMaterial == material) "• $material" else material,
-                                fontWeight = if (uiState.filterMaterial == material) FontWeight.Bold else FontWeight.Normal
-                            )
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { viewModel.toggleMaterialFilter() }) {
-                    Text(tr("Скасувати", "Cancel"))
-                }
-            }
+    // Tree-style filter dialog (material → sub-options, category → sub-options, etc.)
+    if (uiState.showFilterDialog) {
+        StockFilterDialog(
+            uiState = uiState,
+            onDismiss = { viewModel.toggleFilterDialog(false) },
+            onMaterialSelected = { viewModel.updateFilterMaterial(it) },
+            onCategorySelected = { viewModel.updateFilterCategory(it) },
+            onQualitySelected = { viewModel.updateFilterQuality(it) },
+            onSeriesSelected = { viewModel.updateFilterSeries(it) },
+            onNominalSelected = { viewModel.updateFilterNominal(it) },
+            onClearAll = { viewModel.clearAllFilters() }
         )
     }
 }
@@ -423,6 +445,139 @@ fun ProductCard(
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun StockFilterDialog(
+    uiState: com.numisproerp.ui.viewmodel.StockUiState,
+    onDismiss: () -> Unit,
+    onMaterialSelected: (String) -> Unit,
+    onCategorySelected: (String) -> Unit,
+    onQualitySelected: (String) -> Unit,
+    onSeriesSelected: (String) -> Unit,
+    onNominalSelected: (String) -> Unit,
+    onClearAll: () -> Unit
+) {
+    var activeDimension by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                if (activeDimension == null) tr("Фільтр", "Filter")
+                else tr("Оберіть значення", "Select value")
+            )
+        },
+        text = {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(max = 420.dp)
+                    .verticalScroll(androidx.compose.foundation.rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(2.dp)
+            ) {
+                if (activeDimension == null) {
+                    StockFilterDimensionRow(
+                        tr("Матеріал", "Material"), uiState.filterMaterial, uiState.materials.isEmpty()
+                    ) { activeDimension = "material" }
+                    StockFilterDimensionRow(
+                        tr("Категорія", "Category"), uiState.filterCategory, uiState.categories.isEmpty()
+                    ) { activeDimension = "category" }
+                    StockFilterDimensionRow(
+                        tr("Якість", "Quality"), uiState.filterQuality, uiState.qualities.isEmpty()
+                    ) { activeDimension = "quality" }
+                    StockFilterDimensionRow(
+                        tr("Серія", "Series"), uiState.filterSeries, uiState.seriesList.isEmpty()
+                    ) { activeDimension = "series" }
+                    StockFilterDimensionRow(
+                        tr("Номінал", "Nominal"), uiState.filterNominal, uiState.nominals.isEmpty()
+                    ) { activeDimension = "nominal" }
+                } else {
+                    val (options, currentValue, apply) = when (activeDimension) {
+                        "material" -> Triple(uiState.materials, uiState.filterMaterial, onMaterialSelected)
+                        "category" -> Triple(uiState.categories, uiState.filterCategory, onCategorySelected)
+                        "quality" -> Triple(uiState.qualities, uiState.filterQuality, onQualitySelected)
+                        "series" -> Triple(uiState.seriesList, uiState.filterSeries, onSeriesSelected)
+                        "nominal" -> Triple(uiState.nominals, uiState.filterNominal, onNominalSelected)
+                        else -> Triple(emptyList(), "", {} as (String) -> Unit)
+                    }
+
+                    TextButton(
+                        onClick = { apply(""); activeDimension = null },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            tr("Усі", "All"),
+                            fontWeight = if (currentValue.isEmpty()) FontWeight.Bold else FontWeight.Normal
+                        )
+                    }
+                    options.forEach { value ->
+                        TextButton(
+                            onClick = { apply(value); activeDimension = null },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = if (currentValue == value) "• $value" else value,
+                                fontWeight = if (currentValue == value) FontWeight.Bold else FontWeight.Normal
+                            )
+                        }
+                    }
+                    if (options.isEmpty()) {
+                        Text(
+                            tr("Немає значень для цього критерію", "No values for this criterion"),
+                            fontSize = 12.sp,
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                            modifier = Modifier.padding(8.dp)
+                        )
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            if (activeDimension == null) {
+                TextButton(onClick = { onClearAll() }) {
+                    Text(tr("Очистити", "Clear all"))
+                }
+            } else {
+                TextButton(onClick = { activeDimension = null }) {
+                    Text(tr("Назад", "Back"))
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(tr("Закрити", "Close")) }
+        }
+    )
+}
+
+@Composable
+private fun StockFilterDimensionRow(
+    label: String,
+    selected: String,
+    empty: Boolean,
+    onClick: () -> Unit
+) {
+    TextButton(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth(),
+        enabled = !empty
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = label,
+                fontWeight = if (selected.isNotEmpty()) FontWeight.Bold else FontWeight.Normal
+            )
+            Text(
+                text = if (selected.isNotEmpty()) selected else if (empty) tr("немає", "none") else "›",
+                fontSize = 12.sp,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
         }
     }
 }
