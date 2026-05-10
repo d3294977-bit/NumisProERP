@@ -59,11 +59,15 @@ import com.numisproerp.ui.i18n.tr
 import com.numisproerp.data.dao.ProductInStock
 import com.numisproerp.data.entities.Client
 import com.numisproerp.data.entities.Sale
+import com.numisproerp.di.AppDatabaseEntryPoint
 import com.numisproerp.ui.theme.AccentGreen
 import com.numisproerp.ui.theme.AccentOrange
 import com.numisproerp.ui.theme.AccentRed
 import com.numisproerp.ui.theme.IOSDesign
 import com.numisproerp.ui.viewmodel.SaleViewModel
+import com.numisproerp.utils.PdfReportGenerator
+import com.numisproerp.utils.ReceiptShareUtil
+import dagger.hilt.android.EntryPointAccessors
 import kotlinx.coroutines.launch
 
 data class SaleCartItem(
@@ -89,6 +93,13 @@ fun SaleScreen(
 
     var cartItems by remember { mutableStateOf<List<SaleCartItem>>(emptyList()) }
     var showAddProductDialog by remember { mutableStateOf(false) }
+    var receiptDialogPath by remember { mutableStateOf<String?>(null) }
+
+    val database = remember {
+        EntryPointAccessors
+            .fromApplication(context.applicationContext, AppDatabaseEntryPoint::class.java)
+            .appDatabase()
+    }
 
     var searchQuery by remember { mutableStateOf("") }
     var filteredProducts by remember { mutableStateOf<List<ProductInStock>>(emptyList()) }
@@ -384,10 +395,12 @@ fun SaleScreen(
                     onClick = {
                         if (cartItems.isNotEmpty() && uiState.selectedClientId.isNotEmpty()) {
                             scope.launch {
-                                for (item in cartItems) {
+                                val saleDate = System.currentTimeMillis()
+                                val itemsSnapshot = cartItems.toList()
+                                for (item in itemsSnapshot) {
                                     val sale = Sale(
-                                        saleId = "SAL-${System.currentTimeMillis()}-${item.productId}",
-                                        date = System.currentTimeMillis(),
+                                        saleId = "SAL-${saleDate}-${item.productId}",
+                                        date = saleDate,
                                         catalogId = item.productId,
                                         clientId = uiState.selectedClientId,
                                         quantity = item.quantity,
@@ -398,10 +411,31 @@ fun SaleScreen(
                                     )
                                     viewModel.repository.insertSale(sale)
                                 }
+
+                                val clientName = uiState.clients
+                                    .firstOrNull { it.clientId == uiState.selectedClientId }?.name
+                                    ?: ""
+                                val receiptItems = itemsSnapshot.map {
+                                    PdfReportGenerator.ReceiptItem(
+                                        productName = it.productName,
+                                        quantity = it.quantity,
+                                        pricePerUnit = it.pricePerUnit,
+                                        additionalCosts = it.additionalCosts,
+                                        totalAmount = it.totalAmount
+                                    )
+                                }
+                                val generator = PdfReportGenerator(database)
+                                val result = generator.generateSaleReceipt(
+                                    context, clientName, saleDate, receiptItems
+                                )
                                 cartItems = emptyList()
                                 viewModel.clearSuccessMessage()
-                                navController.popBackStack()
                                 Toast.makeText(context, saleDoneText, Toast.LENGTH_LONG).show()
+                                if (result.success) {
+                                    receiptDialogPath = result.filePath
+                                } else {
+                                    navController.popBackStack()
+                                }
                             }
                         }
                     },
@@ -421,6 +455,51 @@ fun SaleScreen(
                 }
             }
         }
+    }
+
+    // Діалог пост-продажу: чек PDF, дії — поділитися/зберегти/не зберігати
+    receiptDialogPath?.let { path ->
+        val downloadedText = tr("Збережено в Downloads", "Saved to Downloads")
+        AlertDialog(
+            onDismissRequest = {},
+            title = { Text(tr("Чек продажу", "Sale receipt")) },
+            text = {
+                Text(
+                    tr(
+                        "Чек у форматі PDF готовий. Як вчинити з ним?",
+                        "PDF receipt is ready. What would you like to do with it?"
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    ReceiptShareUtil.share(context, path)
+                }) {
+                    Text(tr("Поділитися", "Share"))
+                }
+            },
+            dismissButton = {
+                Row(horizontalArrangement = Arrangement.End) {
+                    TextButton(onClick = {
+                        val saved = ReceiptShareUtil.saveToDownloads(context, path)
+                        if (saved != null) {
+                            Toast.makeText(context, "$downloadedText: $saved", Toast.LENGTH_LONG).show()
+                        }
+                        receiptDialogPath = null
+                        navController.popBackStack()
+                    }) {
+                        Text(tr("Зберегти", "Save"))
+                    }
+                    TextButton(onClick = {
+                        ReceiptShareUtil.discard(path)
+                        receiptDialogPath = null
+                        navController.popBackStack()
+                    }) {
+                        Text(tr("Не зберігати", "Discard"))
+                    }
+                }
+            }
+        )
     }
 
     // Діалог додавання товару (з прокруткою)
