@@ -224,14 +224,16 @@ fun SettingsScreen(
             }
             item {
                 ThemeOptionCard(
-                    title = "OlegSmile",
+                    title = tr("Преміум 3D", "Premium 3D"),
                     subtitle = tr(
-                        "Чорно-золота фірмова тема з емблемою лева",
-                        "Black-and-gold branded theme with lion emblem"
+                        "Кольорові 3D-плитки для розділів каталогу, продажів, " +
+                            "складу, збірки та інших",
+                        "Colorful 3D tiles for catalog, sales, stock, " +
+                            "collection and other sections"
                     ),
-                    emblem = R.drawable.oleg_smile_emblem,
-                    selected = currentTheme == AppTheme.OLEG_SMILE,
-                    onClick = { viewModel.setTheme(AppTheme.OLEG_SMILE) }
+                    emblem = R.drawable.tile_collection,
+                    selected = currentTheme == AppTheme.PREMIUM,
+                    onClick = { viewModel.setTheme(AppTheme.PREMIUM) }
                 )
             }
 

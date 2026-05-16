@@ -196,60 +196,24 @@ fun DashboardContent(
 
 @Composable
 private fun DashboardHeader(currentDate: String) {
-    val theme = LocalAppTheme.current
-    if (theme == AppTheme.OLEG_SMILE) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.oleg_smile_emblem),
-                contentDescription = "OlegSmile",
-                modifier = Modifier
-                    .size(72.dp)
-                    .clip(RoundedCornerShape(36.dp))
-            )
-            Spacer(modifier = Modifier.width(12.dp))
-            Column {
-                Text(
-                    text = "OlegSmile",
-                    fontSize = 26.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                Text(
-                    text = tr("NumisProERP — облік та каталогізація", "NumisProERP — accounting & catalog"),
-                    fontSize = 13.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
-                )
-                Text(
-                    text = currentDate,
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                    modifier = Modifier.padding(top = 2.dp)
-                )
-            }
-        }
-    } else {
-        Column {
-            Text(
-                text = "NumisProERP",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                text = tr("Облік та каталогізація", "Accounting & catalog"),
-                fontSize = 14.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-            )
-            Text(
-                text = currentDate,
-                fontSize = 12.sp,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
-                modifier = Modifier.padding(top = 4.dp)
-            )
-        }
+    Column {
+        Text(
+            text = "NumisProERP",
+            fontSize = 28.sp,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            text = tr("Облік та каталогізація", "Accounting & catalog"),
+            fontSize = 14.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+        Text(
+            text = currentDate,
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f),
+            modifier = Modifier.padding(top = 4.dp)
+        )
     }
 }
 
@@ -444,7 +408,7 @@ fun QuickAccessButton(
             horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(top = 6.dp, bottom = 4.dp, start = 4.dp, end = 4.dp)
         ) {
-            if (theme == AppTheme.OLEG_SMILE) {
+            if (theme == AppTheme.PREMIUM) {
                 Image(
                     painter = painterResource(id = tileRes),
                     contentDescription = label,

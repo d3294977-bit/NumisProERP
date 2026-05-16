@@ -12,15 +12,20 @@ import javax.inject.Singleton
  * Тема додатку. Користувач обирає в Налаштуваннях.
  *
  * - [DEFAULT] — класична iOS-Blue палітра, з якою додаток був до цього.
- * - [OLEG_SMILE] — фірмова чорно-золота тема із емблемою лева.
+ * - [PREMIUM] — світла "Преміум 3D" тема з кольоровими 3D-плитками
+ *   для основних розділів (Каталог, Склад, Продаж, Закупівлі, Клієнти,
+ *   Постачальники, Звіти, Моя збірка).
  */
 enum class AppTheme {
     DEFAULT,
-    OLEG_SMILE;
+    PREMIUM;
 
     companion object {
         fun fromKey(key: String?): AppTheme = when (key) {
-            OLEG_SMILE.name -> OLEG_SMILE
+            PREMIUM.name -> PREMIUM
+            // Зворотна сумісність: користувачі, що раніше обрали стару
+            // тему "OlegSmile", автоматично переключаються на нову PREMIUM.
+            "OLEG_SMILE" -> PREMIUM
             else -> DEFAULT
         }
     }

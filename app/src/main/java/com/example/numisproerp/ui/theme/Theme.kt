@@ -1,10 +1,6 @@
 package com.numisproerp.ui.theme
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
@@ -12,13 +8,8 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import com.numisproerp.R
 import com.numisproerp.data.settings.AppTheme
 
 private val DarkColorScheme = darkColorScheme(
@@ -59,23 +50,23 @@ private val LightColorScheme = lightColorScheme(
     onError = LightOnPrimary
 )
 
-private val OlegSmileColorScheme = darkColorScheme(
-    primary = OlegGold,
-    onPrimary = Color(0xFF0B0B0D),
-    primaryContainer = OlegPrimaryContainer,
-    onPrimaryContainer = OlegGoldBright,
-    secondary = OlegGoldBright,
-    onSecondary = Color(0xFF0B0B0D),
-    tertiary = OlegOrange,
-    onTertiary = Color(0xFF0B0B0D),
-    background = OlegBackground,
-    onBackground = OlegOnSurface,
-    surface = OlegSurface,
-    onSurface = OlegOnSurface,
-    surfaceVariant = OlegSurfaceVariant,
-    onSurfaceVariant = OlegOnSurfaceVariant,
-    error = OlegRed,
-    onError = Color(0xFF0B0B0D)
+private val PremiumColorScheme = lightColorScheme(
+    primary = PremiumPrimary,
+    onPrimary = LightOnPrimary,
+    primaryContainer = PremiumPrimaryContainer,
+    onPrimaryContainer = PremiumPrimaryDim,
+    secondary = PremiumTeal,
+    onSecondary = LightOnPrimary,
+    tertiary = PremiumOrange,
+    onTertiary = LightOnPrimary,
+    background = PremiumBackground,
+    onBackground = PremiumOnSurface,
+    surface = PremiumSurface,
+    onSurface = PremiumOnSurface,
+    surfaceVariant = PremiumSurfaceVariant,
+    onSurfaceVariant = PremiumOnSurfaceVariant,
+    error = PremiumRed,
+    onError = LightOnPrimary
 )
 
 private val IOSShapes = Shapes(
@@ -93,7 +84,7 @@ fun NumisProERPTheme(
     content: @Composable () -> Unit
 ) {
     val colorScheme = when (appTheme) {
-        AppTheme.OLEG_SMILE -> OlegSmileColorScheme
+        AppTheme.PREMIUM -> PremiumColorScheme
         AppTheme.DEFAULT -> if (darkTheme) DarkColorScheme else LightColorScheme
     }
 
@@ -101,34 +92,8 @@ fun NumisProERPTheme(
         MaterialTheme(
             colorScheme = colorScheme,
             typography = Typography,
-            shapes = IOSShapes
-        ) {
-            if (appTheme == AppTheme.OLEG_SMILE) {
-                Box(modifier = Modifier.fillMaxSize().background(OlegBackgroundSolid)) {
-                    Image(
-                        painter = painterResource(id = R.drawable.oleg_smile_background),
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(
-                                        Color(0xAA000000),
-                                        Color(0x99000000),
-                                        Color(0xAA000000)
-                                    )
-                                )
-                            )
-                    )
-                    content()
-                }
-            } else {
-                content()
-            }
-        }
+            shapes = IOSShapes,
+            content = content
+        )
     }
 }

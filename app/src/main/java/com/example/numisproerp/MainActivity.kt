@@ -17,7 +17,9 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Store
 import androidx.compose.material.icons.automirrored.outlined.Help
+import androidx.compose.material.icons.automirrored.outlined.MenuBook
 import androidx.compose.material.icons.outlined.BarChart
+import androidx.compose.material.icons.outlined.CollectionsBookmark
 import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Edit
@@ -26,6 +28,8 @@ import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material.icons.outlined.Sell
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.foundation.Image
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.unit.dp
@@ -235,11 +239,44 @@ fun TopBar(
 @Composable
 fun BottomBar(navController: NavHostController) {
     val context = LocalContext.current
+    val theme = com.numisproerp.ui.theme.LocalAppTheme.current
+    val isPremium = theme == com.numisproerp.data.settings.AppTheme.PREMIUM
     val items = listOf(
-        BottomNavItem(tr("Головна", "Home"), Icons.Default.Home, Screen.Dashboard.route, false),
-        BottomNavItem(tr("Каталог", "Catalog"), Icons.Default.Store, Screen.Catalog.route, false),
-        BottomNavItem(tr("Склад", "Stock"), Icons.Default.Store, Screen.Stock.route, false),
-        BottomNavItem(tr("Налаштування", "Settings"), Icons.Default.Settings, Screen.Settings.route, false)
+        BottomNavItem(
+            title = tr("Головна", "Home"),
+            icon = Icons.Default.Home,
+            tileRes = null,
+            route = Screen.Dashboard.route,
+            isPlaceholder = false
+        ),
+        BottomNavItem(
+            title = tr("Каталог", "Catalog"),
+            icon = Icons.AutoMirrored.Outlined.MenuBook,
+            tileRes = com.numisproerp.R.drawable.tile_catalog,
+            route = Screen.Catalog.route,
+            isPlaceholder = false
+        ),
+        BottomNavItem(
+            title = tr("Моя збірка", "My collection"),
+            icon = Icons.Outlined.CollectionsBookmark,
+            tileRes = com.numisproerp.R.drawable.tile_collection,
+            route = Screen.MyCollection.route,
+            isPlaceholder = false
+        ),
+        BottomNavItem(
+            title = tr("Склад", "Stock"),
+            icon = Icons.Default.Store,
+            tileRes = com.numisproerp.R.drawable.tile_stock,
+            route = Screen.Stock.route,
+            isPlaceholder = false
+        ),
+        BottomNavItem(
+            title = tr("Налаштування", "Settings"),
+            icon = Icons.Default.Settings,
+            tileRes = null,
+            route = Screen.Settings.route,
+            isPlaceholder = false
+        )
     )
     val inDevSuffix = tr(" в розробці", " in development")
 
@@ -257,7 +294,17 @@ fun BottomBar(navController: NavHostController) {
                         }
                     }
                 },
-                icon = { Icon(item.icon, contentDescription = item.title) },
+                icon = {
+                    if (isPremium && item.tileRes != null) {
+                        Image(
+                            painter = painterResource(id = item.tileRes),
+                            contentDescription = item.title,
+                            modifier = Modifier.size(28.dp)
+                        )
+                    } else {
+                        Icon(item.icon, contentDescription = item.title)
+                    }
+                },
                 label = { Text(item.title) }
             )
         }
@@ -265,4 +312,10 @@ fun BottomBar(navController: NavHostController) {
 }
 
 data class DrawerItem(val title: String, val route: String, val isPlaceholder: Boolean, val icon: ImageVector = Icons.Default.Home)
-data class BottomNavItem(val title: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val route: String, val isPlaceholder: Boolean)
+data class BottomNavItem(
+    val title: String,
+    val icon: ImageVector,
+    val tileRes: Int?,
+    val route: String,
+    val isPlaceholder: Boolean
+)

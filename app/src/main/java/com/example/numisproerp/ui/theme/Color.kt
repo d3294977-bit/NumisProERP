@@ -54,24 +54,21 @@ val Pink40 = IOSPink
 val Pink80 = IOSPink
 
 // =============================================================================
-// OlegSmile theme palette — чорно-золота фірмова тема із емблемою лева.
-// Використовується, якщо в Налаштуваннях обрано AppTheme.OLEG_SMILE.
-// background робимо прозорим, щоб у NumisProERPTheme можна було показати
-// фірмове зображення лева як загальний фон екрану.
+// Premium 3D theme palette — світла нейтральна тема з кольоровими 3D-плитками.
+// Використовується, якщо в Налаштуваннях обрано AppTheme.PREMIUM.
 // =============================================================================
-val OlegBackground = Color(0x00000000)
-val OlegBackgroundSolid = Color(0xFF0B0B0D)
-val OlegSurface = Color(0xCC15141A)
-val OlegSurfaceVariant = Color(0xCC1F1D26)
-val OlegPrimaryContainer = Color(0xCC2A2316)
-val OlegOnSurface = Color(0xFFEDE3C8)
-val OlegOnSurfaceVariant = Color(0xFFC4B68A)
+val PremiumBackground = Color(0xFFF4F5F7)
+val PremiumSurface = Color(0xFFFFFFFF)
+val PremiumSurfaceVariant = Color(0xFFE9EBEF)
+val PremiumPrimaryContainer = Color(0xFFE3E6EB)
+val PremiumOnSurface = Color(0xFF1C1C1E)
+val PremiumOnSurfaceVariant = Color(0xFF3C3C43)
 
-val OlegGold = Color(0xFFD4AF37)
-val OlegGoldBright = Color(0xFFF5D76E)
-val OlegGoldDim = Color(0xFF8E7625)
+val PremiumPrimary = Color(0xFF3D5AFE)
+val PremiumPrimaryBright = Color(0xFF536DFE)
+val PremiumPrimaryDim = Color(0xFF1E40AF)
 
-val OlegRed = Color(0xFFE57373)
-val OlegGreen = Color(0xFF7FCB7F)
-val OlegOrange = Color(0xFFE5A54A)
-val OlegBlue = Color(0xFF6FA8DC)
+val PremiumRed = Color(0xFFFF3B30)
+val PremiumGreen = Color(0xFF34C759)
+val PremiumOrange = Color(0xFFFF9500)
+val PremiumTeal = Color(0xFF5AC8FA)
