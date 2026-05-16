@@ -292,11 +292,9 @@ private fun PremiumDashboardHeader(currentDate: String) {
             )
         }
         Image(
-            painter = painterResource(id = R.drawable.oleg_smile_emblem),
+            painter = painterResource(id = R.drawable.oleg_premium_emblem),
             contentDescription = "OlegSmile",
-            modifier = Modifier
-                .size(96.dp)
-                .clip(RoundedCornerShape(48.dp))
+            modifier = Modifier.size(110.dp)
         )
         Spacer(modifier = Modifier.width(8.dp))
         Column(
