@@ -359,6 +359,7 @@ fun QuickAccessRow(
         QuickAccessButton(
             icon = Icons.Outlined.LocalAtm,
             tileRes = R.drawable.tile_purchase,
+            lightTileRes = R.drawable.tile_light_purchase,
             lightTint = AccentOrange,
             label = tr("Закупівля", "Purchase"),
             onClick = onPurchaseClick
@@ -366,6 +367,7 @@ fun QuickAccessRow(
         QuickAccessButton(
             icon = Icons.Filled.ShoppingCart,
             tileRes = R.drawable.tile_sale,
+            lightTileRes = R.drawable.tile_light_sale,
             lightTint = AccentGreen,
             label = tr("Продаж", "Sale"),
             onClick = onSaleClick
@@ -373,6 +375,7 @@ fun QuickAccessRow(
         QuickAccessButton(
             icon = Icons.Filled.Store,
             tileRes = R.drawable.tile_stock,
+            lightTileRes = R.drawable.tile_light_stock,
             lightTint = AccentBlue,
             label = tr("Склад", "Stock"),
             onClick = onStockClick
@@ -380,6 +383,7 @@ fun QuickAccessRow(
         QuickAccessButton(
             icon = Icons.Filled.People,
             tileRes = R.drawable.tile_clients,
+            lightTileRes = R.drawable.tile_light_clients,
             lightTint = AccentTeal,
             label = tr("Клієнти", "Clients"),
             onClick = onClientsClick
@@ -401,6 +405,7 @@ fun QuickAccessRow2(
         QuickAccessButton(
             icon = Icons.Outlined.BarChart,
             tileRes = R.drawable.tile_reports,
+            lightTileRes = R.drawable.tile_light_reports,
             lightTint = AccentYellow,
             label = tr("Звіти", "Reports"),
             onClick = onReportsClick
@@ -408,6 +413,7 @@ fun QuickAccessRow2(
         QuickAccessButton(
             icon = Icons.Filled.People,
             tileRes = R.drawable.tile_suppliers,
+            lightTileRes = R.drawable.tile_light_suppliers,
             lightTint = AccentPurple,
             label = tr("Постачальники", "Suppliers"),
             onClick = onSuppliersClick
@@ -415,6 +421,7 @@ fun QuickAccessRow2(
         QuickAccessButton(
             icon = Icons.Outlined.Receipt,
             tileRes = R.drawable.tile_expenses,
+            lightTileRes = R.drawable.tile_light_expenses,
             lightTint = AccentRed,
             label = tr("Витрати", "Expenses"),
             onClick = onExpensesClick
@@ -422,6 +429,7 @@ fun QuickAccessRow2(
         QuickAccessButton(
             icon = Icons.Outlined.BarChart,
             tileRes = R.drawable.tile_collection,
+            lightTileRes = R.drawable.tile_light_collection,
             lightTint = AccentBlue,
             label = tr("Моя колекція", "Collection"),
             onClick = onDocumentsClick
@@ -434,6 +442,7 @@ fun QuickAccessButton(
     modifier: Modifier = Modifier,
     icon: ImageVector,
     tileRes: Int,
+    lightTileRes: Int? = null,
     lightTint: Color = Color.Unspecified,
     label: String,
     onClick: () -> Unit
@@ -468,16 +477,24 @@ fun QuickAccessButton(
                     )
                 }
                 AppTheme.OLEG_SMILE_LIGHT -> {
-                    val resolvedTint = if (lightTint != Color.Unspecified) lightTint else MaterialTheme.colorScheme.primary
-                    IOSIconChip(
-                        icon = icon,
-                        tint = resolvedTint,
-                        chipSize = 68.dp,
-                        iconSize = 36.dp,
-                        cornerRadius = 14.dp,
-                        backgroundAlpha = 0.18f,
-                        contentDescription = label
-                    )
+                    if (lightTileRes != null) {
+                        Image(
+                            painter = painterResource(id = lightTileRes),
+                            contentDescription = label,
+                            modifier = Modifier.size(68.dp)
+                        )
+                    } else {
+                        val resolvedTint = if (lightTint != Color.Unspecified) lightTint else MaterialTheme.colorScheme.primary
+                        IOSIconChip(
+                            icon = icon,
+                            tint = resolvedTint,
+                            chipSize = 68.dp,
+                            iconSize = 36.dp,
+                            cornerRadius = 14.dp,
+                            backgroundAlpha = 0.18f,
+                            contentDescription = label
+                        )
+                    }
                 }
                 else -> {
                     IOSIconChip(
