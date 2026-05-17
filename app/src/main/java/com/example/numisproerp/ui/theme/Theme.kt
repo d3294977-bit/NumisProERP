@@ -180,13 +180,23 @@ fun NumisProERPTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = when (appTheme) {
+    val baseColorScheme = when (appTheme) {
         AppTheme.OLEG_SMILE -> OlegSmileColorScheme
         AppTheme.OLEG_SMILE_V2 -> OlegSmileV2ColorScheme
         AppTheme.OLEG_SMILE_LIGHT -> OlegSmileLightColorScheme
         AppTheme.OLEG_SMILE_PREMIUM -> OlegSmilePremiumColorScheme
         AppTheme.OCEAN_GLASS -> OceanGlassColorScheme
         AppTheme.DEFAULT -> if (darkTheme) DarkColorScheme else LightColorScheme
+    }
+    // Якщо користувач вибрав фоновий малюнок — робимо `colorScheme.background`
+    // прозорим, щоб усі `Surface(color = colorScheme.background)` та
+    // `Modifier.background(colorScheme.background)` у MainActivity і екранах
+    // не закривали фото. Картки/панелі мають свої `surface`/`primaryContainer`
+    // кольори і залишаються непрозорими.
+    val colorScheme = if (backgroundImagePath.isNotBlank()) {
+        baseColorScheme.copy(background = Color.Transparent)
+    } else {
+        baseColorScheme
     }
 
     // Шрифт: сімейство + колір + масштаб.
@@ -223,6 +233,9 @@ fun NumisProERPTheme(
             } else content
 
             // Користувацький фоновий малюнок (якщо вибрано) — малюємо поверх тематичного фону.
+            // Картки і панелі залишаться видимими (вони мають окремий `surface`/`primaryContainer`),
+            // а основний фон сторінок (Surface і `Modifier.background(colorScheme.background)`) тепер
+            // прозорий (див. вище), тож фото буде проглядати в порожніх місцях.
             val userBgOverlay: @Composable () -> Unit = userBgOverlay@{
                 if (backgroundImagePath.isBlank()) return@userBgOverlay
                 val context = androidx.compose.ui.platform.LocalContext.current
@@ -234,13 +247,6 @@ fun NumisProERPTheme(
                     contentDescription = null,
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.Crop
-                )
-                // Невелика напівпрозора вуаль на користувацькому фоні — щоб текстяти живих карток
-                // залишалися читабельними незалежно від фото.
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(colorScheme.background.copy(alpha = 0.28f))
                 )
             }
 
