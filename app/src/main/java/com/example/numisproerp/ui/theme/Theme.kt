@@ -6,20 +6,28 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Shapes
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.numisproerp.R
 import com.numisproerp.data.settings.AppTheme
+import com.numisproerp.data.settings.SettingsManager
+import java.io.File
 
 private val DarkColorScheme = darkColorScheme(
     primary = IOSBlueDark,
@@ -165,6 +173,10 @@ private val IOSShapes = Shapes(
 @Composable
 fun NumisProERPTheme(
     appTheme: AppTheme = AppTheme.DEFAULT,
+    fontFamilyKey: String = SettingsManager.DEFAULT_FONT_FAMILY,
+    fontSizeSp: Int = SettingsManager.DEFAULT_FONT_SIZE,
+    fontColorHex: String = "",
+    backgroundImagePath: String = "",
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
@@ -177,12 +189,61 @@ fun NumisProERPTheme(
         AppTheme.DEFAULT -> if (darkTheme) DarkColorScheme else LightColorScheme
     }
 
-    CompositionLocalProvider(LocalAppTheme provides appTheme) {
+    // Шрифт: сімейство + колір + масштаб.
+    val customFontFamily = remember(fontFamilyKey) { fontFamilyOf(fontFamilyKey) }
+    val customFontColor: Color = remember(fontColorHex) {
+        if (fontColorHex.isBlank()) Color.Unspecified
+        else runCatching { Color(android.graphics.Color.parseColor("#$fontColorHex")) }
+            .getOrDefault(Color.Unspecified)
+    }
+    val typography = remember(customFontFamily, customFontColor) {
+        buildTypography(family = customFontFamily, textColor = customFontColor)
+    }
+
+    // Масштаб розміру шрифту: користувацький вибір в sp / базове 14 sp.
+    // Пропускаємо через LocalDensity — всі .sp в UI перераховуються.
+    val baseDensity = LocalDensity.current
+    val userScale = fontSizeSp.toFloat() / SettingsManager.DEFAULT_FONT_SIZE.toFloat()
+    val scaledDensity = remember(baseDensity, userScale) {
+        Density(baseDensity.density, baseDensity.fontScale * userScale)
+    }
+
+    CompositionLocalProvider(
+        LocalAppTheme provides appTheme,
+        LocalDensity provides scaledDensity
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography = Typography,
+            typography = typography,
             shapes = IOSShapes
         ) {
+            // Для Text() без явного кольору пропонуємо LocalContentColor.
+            val contentWithFontColor: @Composable () -> Unit = if (customFontColor != Color.Unspecified) {
+                { CompositionLocalProvider(LocalContentColor provides customFontColor) { content() } }
+            } else content
+
+            // Користувацький фоновий малюнок (якщо вибрано) — малюємо поверх тематичного фону.
+            val userBgOverlay: @Composable () -> Unit = userBgOverlay@{
+                if (backgroundImagePath.isBlank()) return@userBgOverlay
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val request = remember(backgroundImagePath) {
+                    ImageRequest.Builder(context).data(File(backgroundImagePath)).build()
+                }
+                AsyncImage(
+                    model = request,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
+                )
+                // Невелика напівпрозора вуаль на користувацькому фоні — щоб текстяти живих карток
+                // залишалися читабельними незалежно від фото.
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(colorScheme.background.copy(alpha = 0.28f))
+                )
+            }
+
             when (appTheme) {
                 AppTheme.OLEG_SMILE -> {
                     Box(modifier = Modifier.fillMaxSize().background(OlegBackgroundSolid)) {
@@ -205,7 +266,8 @@ fun NumisProERPTheme(
                                     )
                                 )
                         )
-                        content()
+                        userBgOverlay()
+                        contentWithFontColor()
                     }
                 }
                 AppTheme.OLEG_SMILE_V2 -> {
@@ -217,7 +279,8 @@ fun NumisProERPTheme(
                             contentScale = ContentScale.Crop,
                             alpha = 0.15f
                         )
-                        content()
+                        userBgOverlay()
+                        contentWithFontColor()
                     }
                 }
                 AppTheme.OLEG_SMILE_LIGHT -> {
@@ -226,7 +289,8 @@ fun NumisProERPTheme(
                             .fillMaxSize()
                             .background(OlegLightBackground)
                     ) {
-                        content()
+                        userBgOverlay()
+                        contentWithFontColor()
                     }
                 }
                 AppTheme.OLEG_SMILE_PREMIUM -> {
@@ -235,7 +299,8 @@ fun NumisProERPTheme(
                             .fillMaxSize()
                             .background(OlegPremiumBackground)
                     ) {
-                        content()
+                        userBgOverlay()
+                        contentWithFontColor()
                     }
                 }
                 AppTheme.OCEAN_GLASS -> {
@@ -266,11 +331,19 @@ fun NumisProERPTheme(
                                     )
                                 )
                         )
-                        content()
+                        userBgOverlay()
+                        contentWithFontColor()
                     }
                 }
                 else -> {
-                    content()
+                    if (backgroundImagePath.isNotBlank()) {
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            userBgOverlay()
+                            contentWithFontColor()
+                        }
+                    } else {
+                        contentWithFontColor()
+                    }
                 }
             }
         }
