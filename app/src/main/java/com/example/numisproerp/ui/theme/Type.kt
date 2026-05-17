@@ -1,10 +1,51 @@
 package com.numisproerp.ui.theme
 
 import androidx.compose.material3.Typography
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+
+/**
+ * Перетворює ключ шрифту з налаштувань на [FontFamily] для Compose.
+ * Підтримуються чотири системні сімейства (system / sans-serif / serif / monospace).
+ */
+fun fontFamilyOf(key: String?): FontFamily = when (key) {
+    "serif" -> FontFamily.Serif
+    "sans-serif" -> FontFamily.SansSerif
+    "monospace" -> FontFamily.Monospace
+    else -> FontFamily.Default
+}
+
+/**
+ * Будує [Typography] з заданим [family] (з налаштувань шрифту) та опціональним
+ * [textColor] (якщо користувач у Налаштуваннях обрав конкретний колір тексту,
+ * він застосовується до кожного TextStyle).
+ */
+fun buildTypography(
+    family: FontFamily = FontFamily.Default,
+    textColor: Color = Color.Unspecified
+): Typography {
+    fun TextStyle.skin(): TextStyle = this.copy(fontFamily = family, color = textColor)
+    return Typography(
+        displayLarge = Typography.displayLarge.skin(),
+        displayMedium = Typography.displayMedium.skin(),
+        displaySmall = Typography.displaySmall.skin(),
+        headlineLarge = Typography.headlineLarge.skin(),
+        headlineMedium = Typography.headlineMedium.skin(),
+        headlineSmall = Typography.headlineSmall.skin(),
+        titleLarge = Typography.titleLarge.skin(),
+        titleMedium = Typography.titleMedium.skin(),
+        titleSmall = Typography.titleSmall.skin(),
+        bodyLarge = Typography.bodyLarge.skin(),
+        bodyMedium = Typography.bodyMedium.skin(),
+        bodySmall = Typography.bodySmall.skin(),
+        labelLarge = Typography.labelLarge.skin(),
+        labelMedium = Typography.labelMedium.skin(),
+        labelSmall = Typography.labelSmall.skin()
+    )
+}
 
 // iOS-стиль типографіки (приблизно SF Pro): великі заголовки жирні,
 // тіло — звичайної ваги, компактна шкала розмірів.
